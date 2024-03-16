@@ -1,759 +1,191 @@
-# Mj32
-32 bit RISC V Microprocessor
-32 BIT MICROPROCESSOR IMPLEMENTATION USING RISC-V ISA
+##MJ32 - RISC V Processor
 
+#Introduction:  
 
+In the realm of processor architecture, this project delves into the meticulous design and realization of a 32-bit processor core adhering to the RISC-V 32I ISA. The RISC-V architecture, known for its simplicity and versatility, serves as the foundational framework, encompassing the initial 37 instructions from the base instruction set. This endeavor stands as a testament to the intricate interplay between hardware design, assembly language, and simulation technologies.
 
-Table of content
+The processor core design is executed in Verilog, a hardware description language, with the customasm assembler providing flexibility and customizability. Simulation is facilitated through EDA playground and iVerilog, while the Digital open-source logic designer and simulator serve as the principal platform for comprehensive testing.
 
+The core architecture shuns the complexities of a pipelined structure, opting for a straightforward approach of executing a single instruction per cycle. Memory management is bifurcated into separate 32-bit addressable spaces for program and data, each serviced by dedicated buses to optimize data transfer efficiency.
 
-Table of content	1
-Registers	2
-Instructions format	3
-R-type	4
-‘funct3’ and ‘funct7’ in R type instructions	4
-I-type	5
-‘funct3’ in I type instructions	5
-S-type	6
-‘funct3’ in S type instructions	6
-B-type	7
-‘funct3’ in B type instructions	7
-3 Address format instructions	8
-Encoding difference between B and S type instructions	8
+Decoding instructions is a pivotal task handled by a dedicated decoder, which identifies instruction types based on the opcode. The subsequent routing of instructions to specific decoders ensures precise control signal generation and data retrieval from registers and memory. Execution units, in turn, manipulate the acquired data to compute results, which are then written back to registers or memory, as dictated by the instruction.
 
+Exception handling is streamlined through the incorporation of default states within each unit, ensuring a prompt and consistent response to exceptional scenarios. While interrupts are omitted from consideration, the design prioritizes robust exception handling mechanisms.
 
+In the context of testing, a meticulous strategy is adopted with separate testbenches for individual units and a comprehensive overall testbench. The Digital logic designer and simulator serve as the workhorse for simulation and testing, allowing for a detailed and rigorous examination of the processor core's functionality.
 
-Introduction
+It is imperative to note that the scope of this project is confined to simulation, precluding considerations for clock frequency optimization. The ensuing sections delve into the specifics of the design, implementation, and testing, providing a comprehensive overview of the 32-bit processor core's architecture and functionality.
 
+#Introduction to RISC-V and 32I ISA:  
 
-Registers
+RISC-V, a burgeoning and open-source instruction set architecture (ISA), has emerged as a pivotal player in the dynamic landscape of processor design. Notable for its simplicity, modularity, and adaptability, RISC-V stands as an open standard, facilitating innovation and collaboration in the realm of computer architecture. Developed at the University of California, Berkeley, RISC-V's design philosophy revolves around a reduced instruction set computing (RISC) approach, emphasizing streamlined instruction sets to enhance overall performance.
 
-RISC-V is a family of open and extensible instruction set architectures (ISA) that are based on the reduced instruction set computer (RISC) design principles. RISC-V has a base integer ISA, which can be extended with optional standard extensions for different purposes1
-The base integer ISA has four variants: RV32I, RV64I, RV128I, and RV32E, which differ in the size of the registers and the address space. RV32I is the most common variant, which has 32-bit registers and a 32-bit address space. RV32E is a reduced variant, which has only 16 registers for embedded applications2
-Registers are temporary storage locations for data and instructions that are accessed by the processor. RISC-V has 32 registers, each of which can hold a 32-bit value. The registers are numbered from 0 to 31 and have the following names and functions:
-x0: The zero register, which always holds the value 0 and cannot be written.
-x1: The return address register, which holds the address of the instruction to return to after a function call.
-x2: The stack pointer register, which holds the address of the top of the stack.
-x3: The global pointer register, which holds the address of the global data area.
-x4: The thread pointer register, which holds the address of the thread-local storage area.
-x5-x7: The temporary registers, which are used to hold intermediate values and do not need to be preserved across function calls.
-x8: The frame pointer register, which holds the address of the current stack frame.
-x9: The alternate link register, which can be used to hold another return address for nested function calls.
-x10-x11: The argument registers, which are used to pass the first two arguments to a function and return values from a function.
-x12-x17: The argument/temporary registers, which are used to pass the remaining arguments to a function and do not need to be preserved across function calls.
-x18-x27: The saved registers, which are used to hold values that need to be preserved across function calls.
-x28-x31: The temporary registers, which are used to hold intermediate values and do not need to be preserved across function calls.
-The register names can also be prefixed with a letter to indicate the type of the value they hold. For example, x10 can also be called a0, which means it holds an argument or a return value. The letters are:
-a: argument or return value
-s: saved value
-t: temporary value
-ra: return address
-sp: stack pointer
-gp: global pointer
-tp: thread pointer
-fp: frame pointer
-The following table summarizes the register names and functions:
-Number
-ABI Name
-Description
-x0
-zero
-The zero register
-x1
-ra
-The return address
-x2
-sp
-The stack pointer
-x3
-gp
-The global pointer
-x4
-tp
-The thread pointer
-x5
-t0
-The temporary register 0
-x6
-t1
-The temporary register 1
-x7
-t2
-The temporary register 2
-x8
-s0/fp
-The saved register 0 or the frame pointer
-x9
-s1
-The saved register 1
-x10
-a0
-The argument/return value register 0
-x11
-a1
-The argument/return value register 1
-x12
-a2
-The argument register 2
-x13
-a3
-The argument register 3
-x14
-a4
-The argument register 4
-x15
-a5
-The argument register 5
-x16
-a6
-The argument register 6
-x17
-a7
-The argument register 7
-x18
-s2
-The saved register 2
-x19
-s3
-The saved register 3
-x20
-s4
-The saved register 4
-x21
-s5
-The saved register 5
-x22
-s6
-The saved register 6
-x23
-s7
-The saved register 7
-x24
-s8
-The saved register 8
-x25
-s9
-The saved register 9
-x26
-s10
-The saved register 10
-x27
-s11
-The saved register 11
-x28
-t3
-The temporary register 3
-x29
-t4
-The temporary register 4
-x30
-t5
-The temporary register 5
-x31
-t6
-The temporary register 6
+The RISC-V ISA is structured into different subsets, each catering to specific application domains and hardware requirements. In this project, the focus is on the RISC-V 32I ISA, which constitutes the base integer instruction set. This subset encompasses the fundamental instructions necessary for integer arithmetic and logical operations, providing a solid foundation for general-purpose computing.
 
-1: RISC-V Instruction Sets - Devopedia 2: RISC-V Instruction Set Manual, Volume I: RISC-V User-Level ISA
+The RISC-V 32I ISA is characterized by a 32-bit architecture, aligning with the prevailing trend in contemporary processor designs. With a carefully curated selection of instructions, the 32I ISA strikes a balance between simplicity and versatility, making it an ideal choice for educational purposes, research, and the development of efficient and scalable processor cores.
 
-Instructions format
+This project embarks on the intricate journey of harnessing the potential of RISC-V 32I ISA, aiming to construct a 32-bit processor core that encapsulates the essence of RISC-V's design principles. By leveraging the specified instruction set, this endeavor seeks to embody the efficiency, flexibility, and elegance that define RISC-V architectures, contributing to the ongoing discourse in the ever-evolving field of computer architecture.
 
-RISC-V is a family of open and extensible instruction set architectures (ISA) that are based on the reduced instruction set computer (RISC) design principles. RISC-V has a base integer ISA, which can be extended with optional standard extensions for different purposes1
-The base integer ISA has four variants: RV32I, RV64I, RV128I, and RV32E, which differ in the size of the registers and the address space. RV32I is the most common variant, which has 32-bit registers and a 32-bit address space. RV32E is a reduced variant, which has only 16 registers for embedded applications2
-The base integer ISA defines six types of instructions: R, I, S, B, U, and J, which have different formats and operands. The instruction types are:
-R-type
+#Customasm in RISC-V Processor Design:  
 
-These instructions have three register operands: two source registers and one destination register. They perform arithmetic or logical operations on the source operands and store the result in the destination register. For example, add x1, x2, x3 adds the values in registers x2 and x3 and stores the result in register x12
-‘funct3’ and ‘funct7’ in R type instructions
+#Introduction: 
+In the realm of RISC-V processor design, the choice of an assembler plays a critical role in streamlining the development process and enhancing configurability. Customasm, an open-source and customizable assembler, emerges as a pivotal tool for the project's 32-bit processor core implementation. Developed by hlorenzi and available on GitHub, Customasm provides a flexible and extensible platform for translating human-readable assembly code into machine code, tailored to the specific needs of the project.
 
-The funct3 and funct7 fields are used to encode the specific operation for R-type instructions. They are derived from the opcode and the mnemonic of the instruction. For example, the opcode for all R-type instructions in the base integer instruction set is 0110011. The funct3 and funct7 fields are then determined by the following table:
-Mnemonic
-Meaning
-funct7
-funct3
-ADD
-Add
-0000000
-000
-SUB
-Subtract
-0100000
-000
-SLL
-Shift left logical
-0000000
-001
-SRL
-Shift right logical
-0000000
-101
-SRA
-Shift right arithmetic
-0100000
-101
-SLT
-Set less than
-0000000
-010
-SLTU
-Set less than unsigned
-0000000
-011
-XOR
-Exclusive OR
-0000000
-100
-OR
-Inclusive OR
-0000000
-110
-AND
-And
-0000000
-111
+#Key Features and Functionality: 
+Customasm's primary strength lies in its adaptability and configurability, allowing developers to define and customize their instruction set architecture (ISA) seamlessly. Leveraging Customasm facilitates the translation of assembly code written in the RISC-V ISA into machine code, ensuring compatibility with the targeted processor core. This level of customization proves instrumental in aligning the assembler with the specific subset of instructions chosen for the project, which encompasses the initial 37 instructions of the RISC-V 32I ISA.
 
-For example, to encode the instruction ADD x1, x2, x3, which adds the values in registers x2 and x3 and stores the result in register x1, we use the following format:
-funct7
-rs2
-rs1
-funct3
-rd
-opcode
-0000000
-00010
-00011
-000
-00001
-0110011
+The assembler supports a modular and plugin-based architecture, enabling users to extend its functionality to meet project-specific requirements. This extensibility ensures that the assembler can evolve alongside the project's needs, accommodating changes or additions to the instruction set with ease. The project benefits from Customasm's capacity to generate machine code in a format compatible with the Verilog hardware description language, facilitating a seamless integration into the overall design and implementation workflow.
 
-The binary encoding of this instruction is 00000000001100010000000110110011.
+#Advantages for Project Development: 
+Customasm serves as a bridge between the high-level assembly code and the low-level hardware description, aiding in the smooth translation of the project's RISC-V assembly instructions into executable machine code. The customization capabilities empower the project to embrace a tailored subset of the RISC-V ISA, streamlining the development process and enhancing overall project manageability.
 
-I-type
-These instructions have two register operands and a 12-bit immediate value. They perform arithmetic or logical operations on one source register and the immediate value and store the result in the destination register. They can also be used for load instructions, which load a value from a memory address computed by adding the immediate value to the base register. For example, addi x1, x2, 10 adds 10 to the value in register x2 and stores the result in register x1. lw x1, 100(x2) loads a word from the memory address obtained by adding 100 to the value in register x2 and stores it in register x12
-‘funct3’ in I type instructions
+The GitHub repository for Customasm (https://github.com/hlorenzi/customasm) serves as a central hub for project documentation, updates, and community engagement. The transparent and collaborative nature of open-source development ensures that any queries or modifications related to Customasm can be addressed within the wider community, fostering a collaborative environment for RISC-V processor designers.
 
-Funct3 is a 3-bit field in the I-type instruction format that specifies the type of operation to be performed. Different I-type instructions use different values of funct3 to distinguish them. For example, the following table shows some of the possible values of funct3 for I-type instructions:
-Instruction
-Opcode
-Funct3
-Meaning
-ADDI
-0010011
-000
-Add immediate
-SLTI
-0010011
-010
-Set less than immediate
-ANDI
-0010011
-111
-And immediate
-LW
-0000011
-010
-Load word
-JALR
-1100111
-000
-Jump and link register
+#Conclusion: 
+Incorporating Customasm into the project's toolchain not only aligns with the principles of openness and customization inherent in RISC-V architecture but also empowers the development process with a versatile and adaptable assembler. The extensibility, modular architecture, and compatibility with the project's chosen subset of instructions make Customasm a valuable asset in the implementation of the 32-bit processor core. As the project progresses, Customasm stands as a dynamic tool, ready to evolve in tandem with the changing requirements and intricacies of the RISC-V processor design landscape.
 
-To generate the funct3 field for an I-type instruction, one can look up the corresponding value in the instruction set manual or use a mnemonic rule based on the opcode and the operation. For example, for the arithmetic and logical instructions with opcode 0010011, the funct3 field is the same as the last three bits of the operation name. For example, ADDI has funct3 = 000, SLTI has funct3 = 010, and ANDI has funct3 = 111. For the load and store instructions with opcode 0000011 and 0100011, the funct3 field indicates the size and sign-extension of the data. For example, LW has funct3 = 010, which means load a 32-bit word and sign-extend it to XLEN bits. For the control transfer instructions with opcode 1100111 and 1100011, the funct3 field indicates the type of branch or jump. For example, JALR has funct3 = 000, which means jump and link to the address in register plus immediate.
-S-type
+#Digital - Logic Designer and Simulator in RISC-V Processor Design:  
 
-These instructions have two register operands and a 12-bit immediate value. They are used for store instructions, which store a value from a source register to a memory address computed by adding the immediate value to the base register. For example, sw x1, 100(x2) stores a word from register x1 to the memory address obtained by adding 100 to the value in register x22
-‘funct3’ in S type instructions
+#Introduction: 
+In the landscape of RISC-V processor design, the tooling chosen for simulation and testing is paramount. Digital, a versatile open-source logic designer and simulator developed by hneemann, emerges as a powerful asset in the implementation of the project's 32-bit processor core. The tool boasts an array of features tailored for effective circuit analysis, synthesis, and visualization. Its adaptability, performance, and debugging capabilities make it a valuable addition to the project's toolchain.
 
-Funct3 is a 3-bit field in the S-type instruction format that specifies the size and sign-extension of the data to be stored. Different S-type instructions use different values of funct3 to distinguish them. For example, the following table shows some of the possible values of funct3 for S-type instructions:
-Instruction
-Opcode
-Funct3
-Meaning
-SB
-0100011
-000
-Store byte
-SH
-0100011
-001
-Store half-word
-SW
-0100011
-010
-Store word
+#Key Features: 
+Digital's feature set caters to a diverse range of needs in the context of RISC-V processor design:
 
-To generate the funct3 field for an S-type instruction, one can look up the corresponding value in the instruction set manual or use a mnemonic rule based on the opcode and the size of the data. For example, for the store instructions with opcode 0100011, the funct3 field is the same as the last three bits of the instruction name. For example, SB has funct3 = 000, SH has funct3 = 001, and SW has funct3 = 010.
-B-type 
+1.   Visualization and Measurement:   Digital facilitates the visualization of signal states through measurement graphs, aiding in the analysis of circuit behavior.
 
-These instructions have two register operands and a 12-bit immediate value. They are used for conditional branch instructions, which compare the values in the source registers and jump to a target address computed by adding the immediate value to the current program counter if the condition is true. For example, beq x1, x2, 8 compares the values in registers x1 and x2 and jumps 8 bytes ahead of the current instruction if they are equal2
-‘funct3’ in B type instructions
+2.   Single Gate Mode:   Enables the analysis of oscillations at the gate level, providing detailed insights into circuit dynamics.
 
-Funct3 is a 3-bit field in the B-type instruction format that specifies the type of conditional branch to be performed. Different B-type instructions use different values of funct3 to distinguish them. For example, the following table shows some of the possible values of funct3 for B-type instructions:
-Instruction
-Opcode
-Funct3
-Meaning
-BEQ
-1100011
-000
-Branch if equal
-BNE
-1100011
-001
-Branch if not equal
-BLT
-1100011
-100
-Branch if less than
-BGE
-1100011
-101
-Branch if greater than or equal
+3.   Combinatorial and Sequential Circuit Analysis:   Supports the analysis and synthesis of both combinatorial and sequential circuits, offering flexibility in circuit design.
 
-To generate the funct3 field for a B-type instruction, one can look up the corresponding value in the instruction set manual or use a mnemonic rule based on the opcode and the condition. For example, for the branch instructions with opcode 1100011, the funct3 field is the same as the last three bits of the instruction name. For example, BEQ has funct3 = 000, BNE has funct3 = 001, and BLT has funct3 = 1001
-1: RISC-V Instruction Set Manual, Volume I: RISC-V User-Level ISA
-U-type: These instructions have one register operand and a 20-bit immediate value. They are used for loading upper immediate values to the destination register. For example, lui x1, 1000 loads the value 1000 << 12 to register x12
+4.   Circuit Testing:   Allows the creation of test cases for thorough testing and verification of circuit designs, ensuring robust functionality.
 
-J-type: These instructions have one register operand and a 20-bit immediate value. They are used for unconditional jump instructions, which jump to a target address computed by adding the immediate value to the current program counter and store the address of the next instruction in the destination register. For example, jal x1, 16 jumps 16 bytes ahead of the current instruction and stores the address of the next instruction in register x12
-1: RISC-V Instruction Sets - Devopedia 2: RISC-V Instruction Formats - University of California, Berkeley
-Opcode
+5.   Library of Components:   Includes a library with commonly used 74xx series integrated circuits, streamlining the integration of standard components into designs.
 
-The opcode is a 7-bit field in the instruction format that specifies the type of instruction to be executed. Different types of instructions have different opcodes to distinguish them. For example, the following table shows some of the possible opcodes for R, I, S, B, U, and J type instructions:
-Type
-Opcode
-Meaning
-R
-0110011
-Register-Register Operations
-I
-0010011
-Register-Immediate Operations
-S
-0100011
-Store Operations
-B
-1100011
-Branch Operations
-U
-0110111
-Upper Immediate Operations
-J
-1101111
-Jump Operations
+6.   Performance:   Exhibits good performance, with the ability to clock a simple processor at 120 kHz, making it suitable for a variety of applications.
 
-To generate the opcode for an instruction, one can look up the corresponding value in the instruction set manual or use a mnemonic rule based on the type and the operation. For example, for the R-type instructions, the opcode is always 0110011, regardless of the specific operation. For the I-type instructions, the opcode is 0010011 for arithmetic and logical operations, 0000011 for load operations, and 1100111 for control transfer operations. For the S-type instructions, the opcode is always 0100011. For the B-type instructions, the opcode is always 1100011. For the U-type instructions, the opcode is 0110111 for LUI and 0010111 for AUIPC. For the J-type instructions, the opcode is always 11011111
-1: RISC-V Instruction Set Manual, Volume I: RISC-V User-Level ISA
+7.   Export and Integration:   Enables the export of circuits to VHDL or Verilog for integration with FPGA platforms. Additionally, direct export of JEDEC files facilitates flashing to GAL16v8 or GAL22v10 chips for hardware testing.
 
-3 Address format instructions
+8.   Debugging Interface:   Offers a simple TCP-based remote control interface for seamless integration with assembler IDEs, enhancing the debugging capabilities of simulated processors.
 
-RISC-V uses 3 address format instructions. The instructions have one opcode and three address fields. One address field is used for destination and two address fields for source (for example, add x1, x2, x3 adds the values in registers x2 and x3 and stores the result in x1).
+#Motivation Behind Development: 
+Digital's development arose from the need for a robust and actively developed simulator following the discontinuation of Logisim, a popular tool for teaching purposes. The motivation to embark on Digital's development stemmed from addressing architectural weaknesses in Logisim that proved challenging to overcome. Unlike some forks of Logisim that focus on feature additions and bug fixes, Digital sought to tackle the underlying architectural difficulties, resulting in a new simulator that surpasses Logisim in various aspects, including performance, testing capabilities, and hardware support.
 
-Encoding difference between B and S type instructions
+#Simulator Architecture: 
+Digital introduces the concept of "switching on" a circuit to address simulation challenges encountered in Logisim. The simulation operates in an event-based mode during the settling time after circuit activation, ensuring a stable state is reached. The tool's ability to handle oscillations and propagate signal changes gate by gate in single gate mode enhances the debugging capabilities, providing a deeper understanding of circuit behavior.
 
-The text is about the instruction formats of RISC-V, which is a family of open and extensible instruction set architectures (ISA) that are based on the reduced instruction set computer (RISC) design principles1
-An instruction format is the way of encoding and representing the operations that a computer processor can perform. Different instruction formats have different fields and numbers of operands or addresses. RISC-V defines six types of instruction formats: R, I, S, B, U, and J2
-The S and B formats are used for store and branch instructions, respectively. They both have a 12-bit immediate field, which is a constant value that is part of the instruction. However, the immediate field is encoded differently in the two formats, as shown in the following table:
-Format
-Opcode
-rs1
-rs2
-imm[11:5]
-funct3
-imm[4:0]
-S
-7 bits
-5 bits
-5 bits
-7 bits
-3 bits
-5 bits
-B
-7 bits
-5 bits
-5 bits
-imm[4:1]
-3 bits
-imm[11]
+#Performance and Debugging: 
+Digital's performance, illustrated by its ability to simulate a complete processor with a 120 kHz clock, is a notable advantage. The tool's debugging interface allows for seamless interaction with assembler IDEs, making it easier to debug assembly programs in a simulated processor. The incorporation of break gates and the ability to insert breakpoints through assembly instructions further simplifies the debugging process.
 
+#Circuit Synthesis and Export: 
+Digital's support for circuit synthesis, including the generation of combinatorial circuits from truth tables and sequential circuits from state transition tables, enhances its utility for educational purposes. The direct export of circuits to VHDL, Verilog, and JEDEC files facilitates hardware testing on GAL chips or integration with FPGA platforms.
 
+#Conclusion: 
+Digital, with its rich feature set, robust architecture, and commitment to addressing the limitations of existing tools, emerges as a valuable companion in the development and testing of the project's 32-bit processor core. Its adaptability, performance, and emphasis on addressing simulation challenges make it a powerful tool in the RISC-V processor design toolkit, aligning seamlessly with the project's goals of efficiency and educational value. The tool's continued development and commitment to overcoming architectural challenges position it as a noteworthy choice for simulation and testing in the realm of digital logic design.
 
+#EDA Playground in RISC-V Processor Design:  
 
+#Introduction: 
+In the realm of RISC-V processor design, the choice of Electronic Design Automation (EDA) tools plays a crucial role in facilitating the development, simulation, and verification processes. EDA Playground, an online platform for EDA tool access, proves to be a valuable resource for the project's 32-bit processor core implementation. This cloud-based platform offers a convenient and collaborative environment, enabling users to design and simulate circuits using various tools without the need for local installations.
 
+#Features and Capabilities: 
+EDA Playground provides a range of features and capabilities that contribute to its effectiveness in the context of RISC-V processor design:
 
+#Cloud-Based Access: 
+EDA Playground operates in the cloud, allowing users to access a variety of EDA tools directly from a web browser. This eliminates the need for local installations and provides a seamless, platform-independent experience.
 
+#Simulation and Verification:
+Users can simulate and verify their designs using different EDA tools available on the platform. This includes running simulations to assess the functionality and performance of the designed RISC-V processor core.
 
-imm[10:5]
+#Multi-Language Support:
+EDA Playground supports multiple hardware description languages (HDLs) such as Verilog, SystemVerilog, and VHDL. This flexibility accommodates various design preferences and requirements.
 
+#Collaborative Environment:
+The platform fosters collaboration by allowing users to share their designs and simulations with others. This feature is particularly valuable for educational purposes, facilitating teamwork and knowledge sharing.
 
-imm[12]
+#Quick Prototyping:
+EDA Playground enables rapid prototyping and testing of circuit designs. Users can iterate on their RISC-V processor core implementations efficiently, making it a valuable tool for design exploration.
 
-The only difference between the S and B formats is that the 12-bit immediate field is used to encode branch offsets in multiples of 2 in the B format. This means that the branch target address is computed by adding the immediate value, multiplied by 2, to the current program counter. This allows for a larger range of branch targets, since the immediate value can represent up to 4 KiB of offset3
-Instead of shifting all bits in the instruction-encoded immediate left by one in hardware as is conventionally done, the middle bits (imm[10:1]) and sign bit stay in fixed positions, while the lowest bit in S format (inst[7]) encodes a high-order bit in B format. This way, bits 10:1 of the immediate field line up exactly with the S format, and the sign bit is in the same position as the other formats. This simplifies the hardware implementation and reduces the number of wires and logic gates needed to decode the immediate field.
-1: RISC-V Instruction Sets - Devopedia 2: RISC-V Instruction Formats - University of California, Berkeley 3: RISC-V Instruction Set Manual, Volume I: RISC-V User-Level ISA : Why are RISC-V S-B and U-J instruction types encoded in this way?
-Instruction encoding
+#Tool Integration:
+The platform integrates with popular EDA tools, providing users with a choice of tools for simulation and synthesis. This integration enhances the versatility of the platform, catering to a wide range of design needs.
 
-The instructions you listed are from the RISC-V instruction set architecture (ISA), which is a family of open and extensible ISAs that are based on the reduced instruction set computer (RISC) design principles. RISC-V has a base integer ISA, which can be extended with optional standard extensions for different purposes.
-The base integer ISA has four variants: RV32I, RV64I, RV128I, and RV32E, which differ in the size of the registers and the address space. RV32I is the most common variant, which has 32-bit registers and a 32-bit address space. RV32E is a reduced variant, which has only 16 registers for embedded applications.
-The base integer ISA defines six types of instructions: R, I, S, B, U, and J, which have different formats and operands. The instruction types are explained in detail in the previous messages.
-The opcode is a 7-bit field in the instruction format that specifies the type of instruction to be executed. Different types of instructions have different opcodes to distinguish them. The binary representation of an instruction is the way of encoding the instruction fields and values in binary digits (bits). Each instruction is 32 bits long, and the order and position of the bits depend on the instruction format and type. The binary representation of an instruction can be obtained by concatenating the binary values of the opcode, funct3, funct7, rd, rs1, rs2, and immediate fields, according to the instruction format. The binary values of the registers and the immediate values can be obtained by converting the decimal or hexadecimal values to binary and padding with zeros to the required length. For example, the register x1 has the binary value 00001, and the immediate value 10 has the binary value 0000000000001010.
-To generate the opcode and binary representation of all the instructions you listed, I will use the following table, which shows the instruction name, type, opcode, funct3, funct7, and an example of the binary representation. The example assumes that the registers and the immediate values are given in decimal, and the instruction is in RV32I variant. The binary representation may vary depending on the operands and the variant.
-S No
-Instruction
-Type
-Opcode
-Funct3
-Funct7
-Example
-1
-LUI
-U
-0110111
-N/A
-N/A
-LUI x1, 1000 -> 0000000011110000000000001101111
-2
-AUIPC
-U
-0010111
-N/A
-N/A
-AUIPC x1, 1000 -> 0000000011110000000000010010111
-3
-JAL
-J
-1101111
-N/A
-N/A
-JAL x1, 16 -> 00000000000100000000000011101111
-4
-JALR
-I
-1100111
-000
-N/A
-JALR x1, x2, 10 -> 0000000000100001000000011001111
-5
-BEQ
-B
-1100011
-000
-N/A
-BEQ x1, x2, 8 -> 0000000000100001000000001100011
-6
-BNE
-B
-1100011
-001
-N/A
-BNE x1, x2, 8 -> 0000000000100001000100001100011
-7
-BLT
-B
-1100011
-100
-N/A
-BLT x1, x2, 8 -> 0000000000100001010000001100011
-8
-BGE
-B
-1100011
-101
-N/A
-BGE x1, x2, 8 -> 0000000000100001010100001100011
-9
-BLTU
-B
-1100011
-110
-N/A
-BLTU x1, x2, 8 -> 0000000000100001011000001100011
-10
-BGEU
-B
-1100011
-111
-N/A
-BGEU x1, x2, 8 -> 0000000000100001011100001100011
-11
-LB
-I
-0000011
-000
-N/A
-LB x1, 100(x2) -> 000000011001000100000000000011
-12
-LH
-I
-0000011
-001
-N/A
-LH x1, 100(x2) -> 000000011001000100010000000011
-13
-LW
-I
-0000011
-010
-N/A
-LW x1, 100(x2) -> 000000011001000100100000000011
-14
-LBU
-I
-0000011
-100
-N/A
-LBU x1, 100(x2) -> 000000011001000110000000000011
-15
-LHU
-I
-0000011
-101
-N/A
-LHU x1, 100(x2) -> 000000011001000110010000000011
-16
-SB
-S
-0100011
-000
-N/A
-SB x1, 100(x2) -> 0000000110010001000000000100011
-17
-SH
-S
-0100011
-001
-N/A
-SH x1, 100(x2) -> 0000000110010001000100000100011
-18
-SW
-S
-0100011
-010
-N/A
-SW x1, 100(x2) -> 0000000110010001001000000100011
-19
-ADDI
-I
-0010011
-000
-N/A
-ADDI x1, x2, 10 -> 0000000000100001000000010010011
-20
-SLTI
-I
-0010011
-010
-N/A
-SLTI x1, x2, 10 -> 0000000000100001010000010010011
-21
-SLTIU
-I
-0010011
-011
-N/A
-SLTIU x1, x2, 10 -> 0000000000100001011000010010011
-22
-XORI
-I
-0010011
-100
-N/A
-XORI x1, x2, 10 -> 0000000000100001100000010010011
-23
-ORI
-I
-0010011
-110
-N/A
-ORI x1, x2, 10 -> 0000000000100001110000010010011
-24
-ANDI
-I
-0010011
-111
-N/A
-ANDI x1, x2, 10 -> 0000000000100001111000010010011
-25
-SLLI
-I
-0010011
-001
-0000000
-SLLI x1, x2, 10 -> 0000000000100001000100000010011
-26
-SRLI
-I
-0010011
-101
-0000000
-SRLI x1, x2, 10 -> 0000000000100001100100000010011
-27
-SRAI
-I
-0010011
-101
-0100000
-SRAI x1, x2, 10 -> 0000000000100001100100000110011
-28
-ADD
-R
-0110011
-000
-0000000
-ADD x1, x2, x3 -> 00000000001100010000000110110011
-29
-SUB
-R
-0110011
-000
-0100000
-SUB x1, x2, x3 -> 00000000001100010000000111110011
-30
-SLL
-R
-0110011
-001
-0000000
-SLL x1, x2, x3 -> 00000000001100010001000110110011
-31
-SLT
-R
-0110011
-010
-0000000
-SLT x1, x2, x3 -> 00000000001100010010000110110011
-32
-SLTU
-R
-0110011
-011
-0000000
-SLTU x1, x2, x3 -> 00000000001100010011000110110011
-33
-XOR
-R
-0110011
-100
-0000000
-XOR x1, x2, x3 -> 00000000001100011000000110110011
-34
-SRL
-R
-0110011
-101
-0000000
-SRL x1, x2, x3 -> 00000000001100011001000110110011
-35
-SRA
-R
-0110011
-101
-0100000
-SRA x1, x2, x3 -> 00000000001100011001000111110011
-36
-OR
-R
-0110011
-110
-0000000
-OR x1, x2, x3 -> 00000000001100011010000110110011
-37
-AND
-R
-0110011
-111
-0000000
-AND x1, x2, x3 -> 00000000001100011011000110110011
-38
-MV
-I
-0010011
-000
-N/A
-MV x1, x2 -> 0000000000000001000000010010011
-39
-MVI
-I
-0010011
-000
-N/A
-MVI x1, 10 -> 0000000000001010000000010010011
-40
-NOP
-I
-0010011
-000
-N/A
-NOP -> 0000000000000000000000000010011
-41
-J
-J
-1101111
-N/A
-N/A
-J 16 -> 00000000000100000000000011101111
-42
-NOT
-R
-0110011
-100
-0100000
-NOT x1, x2 -> 00000000000000011000000111110011
-43
-INV
-R
-0110011
-100
-0100000
-INV x1, x2 -> 00000000000000011000000111110011
-44
-SEQZ
-I
-0010011
-001
-N/A
-SEQZ x1, x2 -> 0000000000000001000100010010011
-45
-SNEZ
-I
-0010011
-001
-N/A
-SNEZ x1, x2 -> 0000000000000001000100010010011
-46
-BEQZ
-B
-1100011
-000
-N/A
-BEQZ x1, 8 -> 0000000000000001000000001100011
-47
-BNEZ
-B
-1100011
-001
-N/A
-BNEZ x1, 8 -> 0000000000000001000100001100011
-48
-LI
-I
-0010011
-000
-N/A
-LI x1, 10 -> 0000000000001010000000010010011
-49
-LA
-U
-0110111
-N/A
-N/A
-LA x1, 1000 -> 0000000011110000000000001101111
-50
-JR
-I
-1100111
-000
-N/A
-JR x1 -> 0000000000000001000000001100111
+#Educational Use:
+EDA Playground's accessibility and ease of use make it an excellent resource for educational purposes. It allows students and learners to experiment with digital design concepts, including the implementation and simulation of RISC-V processor cores.
 
+#Usage in the Project: 
+The project leverages EDA Playground for various stages of the RISC-V processor core implementation:
 
+1.   Design Exploration:   EDA Playground facilitates the exploration of different design options and configurations for the 32-bit processor core. Designers can quickly prototype and simulate variations to assess their impact on performance and functionality.
 
+#Educational Testing
+The platform is utilized for educational testing, enabling students or team members to interact with and test the RISC-V processor core in a collaborative online environment.
 
+#Tool Compatibility
+EDA Playground's support for multiple HDLs ensures compatibility with the project's choice of hardware description language, accommodating the design specifications and preferences.
+
+#Simulation Verification
+The platform aids in the verification of the RISC-V processor core's simulation results, allowing designers to assess the correctness and efficiency of their implementations.
+
+#Conclusion: 
+EDA Playground's cloud-based approach, collaborative features, and support for various HDLs make it a valuable asset in the project's RISC-V processor core development. The platform's accessibility and integration with diverse EDA tools contribute to an efficient and collaborative design and simulation process. As the project progresses, EDA Playground continues to serve as a versatile and user-friendly environment for exploring, testing, and refining the 32-bit processor core implementation.
+
+#Specifications of the 32-Bit RISC-V Processor Core:  
+
+#Instruction Set Architecture (ISA)
+   - The processor core is based on the RISC-V ISA, specifically adhering to the RISC-V 32I base instruction set.
+   - It encompasses the initial 37 instructions defined in the base ISA, providing a foundational set for computational tasks.
+
+#Register File
+   - The core features a register file with 32 general-purpose registers, each having a width of 32 bits.
+   - The registers serve as key components for storing and manipulating data during program execution.
+
+#Processor Architecture
+   - The processor core is designed using Verilog, a hardware description language, ensuring a comprehensive and synthesizable representation of the hardware logic.
+
+#Assembler
+   - Customasm, an open-source and customizable assembler, is employed for translating human-readable assembly code into machine code compatible with the processor core.
+   - Customasm allows for flexibility in defining and customizing the instruction set architecture (ISA), aligning with the specific subset of instructions chosen for the project.
+
+#Simulation Tools
+   - EDA Playground, an online platform for Electronic Design Automation (EDA), is utilized for simulation purposes.
+   - iVerilog, a Verilog simulator, is employed to simulate and validate the functionality of the processor core design.
+
+#Logic Designer and Simulator
+   - Digital, an open-source logic designer and simulator, contributes to the overall design and testing process.
+   - It enables visualization, analysis, and synthesis of combinatorial and sequential circuits, offering a comprehensive environment for digital logic design.
+
+#Memory Architecture
+   - The processor core features separate 32-bit addressable memory spaces for program and data, enhancing modularity and specialization.
+   - Dedicated buses for program and data memory ensure efficient data transfer.
+
+#Execution Model
+   - The processor core operates in a non-pipelined architecture, allowing for a single instruction per cycle.
+   - An individual Arithmetic Logic Unit (ALU) is designated for Branch instructions, optimizing branch execution.
+
+#Instruction Decoding
+   - The instruction decoding process involves identifying the instruction type based on the opcode (first 7 bits).
+   - Specialized instruction decoders are employed to interpret and execute specific types of instructions, ensuring efficient processing.
+
+#Exception Handling
+    - The core lacks interrupt handling, relying on a default state within each unit to handle exceptions.
+    - Exception triggers result in a default state, simplifying the exception handling mechanism.
+
+#Testing Strategy
+    - Separate testbenches are implemented for each unit of the processor, ensuring individual component testing.
+    - An overall testbench facilitates comprehensive simulation and testing of the entire processor core.
+    - The testing is conducted using the Digital logic designer and simulator, a reliable open-source tool.
+
+#Clock Frequency
+    - As the project proceeds only up to simulation, no specific clock frequency is defined.
+
+#Collaborative Development Tools
+    - The project benefits from collaborative and online development tools such as EDA Playground, enabling team members to work collaboratively on the design and simulation.
+
+#Educational Focus
+    - The design choices and specifications are geared towards educational purposes, providing a simplified yet comprehensive introduction to processor architecture and digital logic design.
+
+#Customization and Extensibility
+    - The use of Customasm for assembling and Digital for logic design ensures customization and extensibility in the project.
+    - The modular and plugin-based nature of Customasm allows for easy adaptation to changes or additions in the instruction set.
+
+These specifications collectively define the architecture, tools, and methodologies employed in the development of the 32-bit RISC-V processor core. The project's focus on simplicity, modularity, and educational value guides the design choices and implementation strategies.
