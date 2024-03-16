@@ -11,6 +11,7 @@
 //   memory operations. The top module integrates these modules to create the
 //   complete CPU.
 ////////////////////////////////////////////////////////////////////////////////
+
 #ruledef register{
 	x0 => 0b00000
 	x1 => 0b00001
