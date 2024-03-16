@@ -1,3 +1,17 @@
+////////////////////////////////////////////////////////////////////////////////
+// Project: MJ32 - Simple RISC V processor core
+// File: store_type.v
+// Author: Mohanraj K
+// Email: mohanrajk1069@gmail.com
+// Date: March 16, 2024
+// Description: 
+//   This project implements a simple CPU design in Verilog. It includes modules
+//   for instruction fetching, decoding, executing, and memory access. The CPU
+//   architecture supports basic arithmetic and logic operations, branching, and
+//   memory operations. The top module integrates these modules to create the
+//   complete CPU.
+////////////////////////////////////////////////////////////////////////////////
+
 module store_type(
   input [31:0]src1_data, src2_data,
   input [2:0]funct3,
