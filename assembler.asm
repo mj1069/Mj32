@@ -1,3 +1,16 @@
+////////////////////////////////////////////////////////////////////////////////
+// Project: MJ32 - Simple RISC V processor core
+// File: assembler.asm
+// Author: Mohanraj K
+// Email: mohanrajk1069@gmail.com
+// Date: March 16, 2024
+// Description: 
+//   This project implements a simple CPU design in Verilog. It includes modules
+//   for instruction fetching, decoding, executing, and memory access. The CPU
+//   architecture supports basic arithmetic and logic operations, branching, and
+//   memory operations. The top module integrates these modules to create the
+//   complete CPU.
+////////////////////////////////////////////////////////////////////////////////
 #ruledef register{
 	x0 => 0b00000
 	x1 => 0b00001
